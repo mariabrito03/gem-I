@@ -1,3 +1,7 @@
+// ================= CONFIG BACKEND =================
+const BACKEND_URL = "https://authentic-dream-production-a737.up.railway.app";
+
+// ================= ELEMENTOS DEL DOM =================
 const chatLog = document.getElementById("chat-log");
 const sendBtn = document.getElementById("send-btn");
 const input = document.getElementById("user-message");
@@ -5,12 +9,14 @@ const video = document.getElementById("bg-video");
 const ring = document.getElementById("ring");
 const chatContainer = document.getElementById("chat-container");
 
-// Sonido al abrir chat
+// ================= AUDIO =================
 const openSound = new Audio("assets/open-sound.mp3");
 openSound.volume = 0.8;
 
 // ================= SOCKET.IO =================
-const socket = io(); // Railway usa el mismo dominio automáticamente
+const socket = io(BACKEND_URL, {
+  transports: ["websocket", "polling"]
+});
 
 // ================= RESPUESTAS ESTÁNDAR =================
 const responses = [
@@ -120,26 +126,32 @@ const responses = [
 let ringActive = false;
 let timeoutId = null;
 let isTyping = false;
+
 let x = window.innerWidth / 2;
 let y = window.innerHeight / 2;
 
-// ================= RING: CLICK =================
+// ================= RING: CLICK INICIAL =================
 ring.addEventListener("click", () => {
   if (ringActive) return;
+
   ringActive = true;
+
   openSound.play().catch(() => {});
   ring.classList.remove("initial");
   ring.classList.add("active");
+
   chatContainer.classList.remove("hidden");
 });
 
 // ================= RING SIGUE EL MOUSE =================
-document.addEventListener("mousemove", e => {
+document.addEventListener("mousemove", (e) => {
   if (!ringActive) return;
+
   x += (e.clientX - x) * 0.15;
   y += (e.clientY - y) * 0.15;
-  ring.style.left = x - 17 + "px";
-  ring.style.top = y - 17 + "px";
+
+  ring.style.left = `${x - 17}px`;
+  ring.style.top = `${y - 17}px`;
 });
 
 // ================= CHAT =================
@@ -151,14 +163,18 @@ function addMessage(text, type) {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+// ================= TYPING =================
 function showTyping() {
   removeTypingDots();
   isTyping = true;
+
   const typing = document.createElement("div");
   typing.className = "message ai typing-message";
+
   const dots = document.createElement("div");
   dots.className = "typing-dots";
   dots.innerHTML = "<span></span><span></span><span></span>";
+
   typing.appendChild(dots);
   chatLog.appendChild(typing);
   chatLog.scrollTop = chatLog.scrollHeight;
@@ -170,19 +186,24 @@ function removeTypingDots() {
   isTyping = false;
 }
 
+// ================= VIDEO =================
 function playVideo() {
   video.currentTime = 0;
   video.play().catch(() => {});
   video.onended = () => video.pause();
 }
 
+// ================= RESPUESTA SIMULADA =================
 function botResponse() {
   playVideo();
+
   const msg = document.createElement("div");
   msg.className = "message ai";
   chatLog.appendChild(msg);
+
   const text = responses[Math.floor(Math.random() * responses.length)];
   let i = 0;
+
   const interval = setInterval(() => {
     msg.textContent += text[i++];
     chatLog.scrollTop = chatLog.scrollHeight;
@@ -191,42 +212,68 @@ function botResponse() {
 }
 
 // ================= SOCKET: MENSAJE DESDE TELEGRAM =================
-socket.on("nuevoMensaje", data => {
+socket.on("nuevoMensaje", (data) => {
   clearTimeout(timeoutId);
   removeTypingDots();
+
   addMessage(data.text, "ai");
   playVideo();
 });
 
 // ================= ENVÍO DE MENSAJE =================
 async function sendMessage() {
+
+  if (!input) {
+    console.error("Input no encontrado");
+    return;
+  }
+
   const text = input.value.trim();
   if (!text) return;
+
   addMessage(text, "user");
   input.value = "";
   showTyping();
 
   try {
-    const res = await fetch("/send-message", {
+    const res = await fetch(`${BACKEND_URL}/send-message`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
     });
-    const data = await res.json();
-    if (data.status !== "ok") console.error("Error al enviar:", data.error);
-  } catch (err) {
-    console.error("Error de conexión:", err);
-  }
 
-  timeoutId = setTimeout(() => {
+    if (!res.ok) {
+      throw new Error(`Error HTTP: ${res.status}`);
+    }
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Respuesta no es JSON");
+    }
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      throw new Error("Backend devolvió ok=false");
+    }
+
+    timeoutId = setTimeout(() => {
+      removeTypingDots();
+      botResponse();
+    }, 15000);
+
+  } catch (err) {
     removeTypingDots();
-    botResponse();
-  }, 15000);
+    console.error("Error al enviar mensaje:", err.message);
+  }
 }
+
 
 // ================= EVENTOS =================
 sendBtn.addEventListener("click", sendMessage);
-input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
 
 // ================= RESIZE =================
 let resizeTimeout;
