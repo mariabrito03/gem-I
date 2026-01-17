@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gem&I</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Kalnia+Glaze:wght@277&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Background video -->
+<video id="bg-video" muted playsinline>
+  <source src="assets/robot.mp4" type="video/mp4">
+</video>
+
+<header id="brand">
+  <h1>Gem<span>&</span>I</h1>
+  <p class="tagline"> Artificio Inteligente </p>
+</header>
+
+<!-- CHAT (oculto al inicio) -->
+<div id="chat-container" class="hidden">
+  <div id="chat-log"></div>
+
+  <div id="chat-input">
+    <input type="text" id="user-message" placeholder="¿Como puedo asistirte hoy?" />
+    <button id="send-btn">SEND</button>
+  </div>
+</div>
+
+<!-- RING -->
+<div id="ring" class="initial">
+  <div id="ring-core"></div>
+</div>
+
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
