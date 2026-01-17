@@ -222,12 +222,6 @@ socket.on("nuevoMensaje", (data) => {
 
 // ================= ENVÍO DE MENSAJE =================
 async function sendMessage() {
-
-  if (!input) {
-    console.error("Input no encontrado");
-    return;
-  }
-
   const text = input.value.trim();
   if (!text) return;
 
@@ -242,32 +236,22 @@ async function sendMessage() {
       body: JSON.stringify({ text })
     });
 
-    if (!res.ok) {
-      throw new Error(`Error HTTP: ${res.status}`);
-    }
-
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Respuesta no es JSON");
-    }
+    if (!res.ok) throw new Error("Error HTTP");
 
     const data = await res.json();
-
     if (!data.ok) {
-      throw new Error("Backend devolvió ok=false");
+      console.error("Error al enviar mensaje");
     }
 
-    timeoutId = setTimeout(() => {
-      removeTypingDots();
-      botResponse();
-    }, 15000);
-
   } catch (err) {
-    removeTypingDots();
-    console.error("Error al enviar mensaje:", err.message);
+    console.error("Error de conexión:", err);
   }
-}
 
+  timeoutId = setTimeout(() => {
+    removeTypingDots();
+    botResponse();
+  }, 15000);
+}
 
 // ================= EVENTOS =================
 sendBtn.addEventListener("click", sendMessage);
