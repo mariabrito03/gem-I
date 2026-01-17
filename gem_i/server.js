@@ -1,58 +1,72 @@
+// server.js
 import express from "express";
-import http from "http";
+import cors from "cors";
+import { createServer } from "http";
 import { Server } from "socket.io";
 import TelegramBot from "node-telegram-bot-api";
-import cors from "cors";
 
-// ------------------ VARIABLES DE ENTORNO ------------------
-const TOKEN = process.env.TOKEN;       // Telegram Bot Token
-const CHAT_ID = process.env.CHAT_ID;   // ChatID fijo para recibir todos los mensajes
-const PORT = process.env.PORT || 3000;
+// ================= CONFIG =================
+const TOKEN = process.env.TOKEN;        // TOKEN del bot desde variables de entorno
+const CHAT_ID = process.env.CHAT_ID;    // Chat ID fijo desde variables de entorno
 
-// ------------------ EXPRESS ------------------
+if (!TOKEN || !CHAT_ID) {
+  console.error("ERROR: TOKEN o CHAT_ID no definido en variables de entorno.");
+  process.exit(1);
+}
+
+// ================= EXPRESS + SOCKET.IO =================
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
   cors: {
-    origin: "*",   // Permite cualquier origen para pruebas
+    origin: "*",  // Puedes restringirlo a tu dominio final
     methods: ["GET", "POST"]
   }
 });
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("public")); // carpeta de tu frontend
 
-// ------------------ TELEGRAM ------------------
+// ================= TELEGRAM BOT =================
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// Recibir mensaje desde Telegram
 bot.on("message", (msg) => {
   console.log("Mensaje recibido de Telegram:", msg.text);
-  io.emit("nuevoMensaje", { text: msg.text });
+  console.log("Chat ID:", msg.chat.id);
+
+  // Emitir al frontend
+  io.emit("nuevoMensaje", { chatId: msg.chat.id, text: msg.text });
 });
 
-// ------------------ ENDPOINT para mensajes desde la web ------------------
+// ================= ENDPOINT PARA MENSAJES DESDE LA WEB =================
 app.post("/send-message", (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ status: "error", error: "Mensaje vacío" });
+
+  if (!text) {
+    return res.status(400).json({ status: "error", error: "message text is empty" });
+  }
 
   bot.sendMessage(CHAT_ID, text)
-    .then(() => res.json({ status: "ok" }))
+    .then(() => res.json({ status: "ok", chatId: CHAT_ID }))
     .catch(err => res.status(500).json({ status: "error", error: err.message }));
 });
 
-// ------------------ SOCKET.IO ------------------
+// ================= SOCKET.IO =================
 io.on("connection", (socket) => {
-  console.log("Nuevo cliente conectado:", socket.id);
-});
+  console.log("Cliente conectado:", socket.id);
 
-// ------------------ START SERVER ------------------
-server.listen(PORT, () => {
-  console.log(`Servidor Node.js corriendo en puerto ${PORT}`);
+  socket.on("disconnect", () => {
+    console.log("Cliente desconectado:", socket.id);
+  });
 });
 
 // ================= PUERTO =================
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server listo en puerto ${PORT}`));
+httpServer.listen(PORT, () => {
+  console.log(` Servidor Node.js corriendo en puerto ${PORT}`);
+});
+
+
 
