@@ -68,12 +68,8 @@ httpServer.listen(PORT, () => {
   console.log(` Servidor Node.js corriendo en puerto ${PORT}`);
 });
 
-// ======================= KEEP ALIVE =======================
-setInterval(() => {
-  fetch("https://authentic-dream-production-a737.up.railway.app")
-    .then(() => console.log("Keep-alive ping"))
-    .catch(() => {});
-}, 240000); // 4 minutos
+
+
 
 
 
