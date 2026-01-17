@@ -1,15 +1,11 @@
 {
   "name": "gemi_server",
   "version": "1.0.0",
-  "description": "Servidor Node.js para Gem&I con Telegram y Socket.IO",
-  "main": "server.js",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.2.1",
