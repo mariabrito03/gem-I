@@ -32,6 +32,19 @@ app.use(express.static("public")); // carpeta de tu frontend
 // ================= TELEGRAM BOT =================
 const bot = new TelegramBot(TOKEN, { polling: true });
 
+// --- Protección contra error 409 (instancias duplicadas) ---
+bot.on("polling_error", (err) => {
+  console.error("Polling error:", err.message);
+
+  if (err.message.includes("409")) {
+    console.log("Conflicto 409 detectado. Reiniciando polling...");
+    bot.stopPolling()
+      .then(() => bot.startPolling())
+      .catch(error => console.error("Error al reiniciar polling:", error.message));
+  }
+});
+
+// --- Mensajes desde Telegram ---
 bot.on("message", (msg) => {
   console.log("Mensaje recibido de Telegram:", msg.text);
   console.log("Chat ID:", msg.chat.id);
@@ -67,7 +80,6 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(` Servidor Node.js corriendo en puerto ${PORT}`);
 });
-
 
 
 
